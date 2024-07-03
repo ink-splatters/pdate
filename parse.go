@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"log"
 	"fmt"
 	"strconv"
 	"strings"
@@ -9,6 +10,35 @@ import (
 
 	"github.com/araddon/dateparse"
 )
+
+
+
+func parseDateparse(val string)(time.Time, error) {
+	
+	var (
+		err error
+		result time.Time
+	)
+
+	if result, err = dateparse.ParseStrict(val); err == nil {
+		return result, err
+	}
+
+	valUpper := strings.ToUpper(val)
+	if result, err = dateparse.ParseStrict(valUpper); err != nil {
+		return result, err
+	}
+
+	if err = result.UnmarshalText([]byte(val)); err == nil {
+		return result, err
+	}
+
+	if err = result.UnmarshalText([]byte(valUpper)); err == nil {
+		return result, err
+	}
+
+	return result, err
+}
 
 // Parse attempts to parse the given string into a time.Time.
 func Parse(val string) (time.Time, error) {
@@ -25,9 +55,9 @@ func Parse(val string) (time.Time, error) {
 
 	if _, err := strconv.ParseFloat(val, 64); err == nil {
 		split := strings.Split(val, ".")
-		if len(split) != 2 {
+		if lsplit:=len(split); lsplit != 2 {
 			// should never happen, as we know this is parseable as a float
-			panic(err)
+			log.Fatalf("[FATAL]: len(split) != 2: %d",lsplit)
 		}
 		secondsStr := split[0]
 		subsecondsStr := split[1]
@@ -51,22 +81,11 @@ func Parse(val string) (time.Time, error) {
 		return result, nil
 	}
 
-	if result, err := dateparse.ParseStrict(val); err == nil {
-		return result, err
-	}
+	for _, perm := range Permutations(strings.Split(val," ")) {
 
-	valUpper := strings.ToUpper(val)
-	if result, err := dateparse.ParseStrict(valUpper); err != nil {
-		return result, err
-	}
-
-	var result time.Time
-	if err := result.UnmarshalText([]byte(val)); err == nil {
-		return result, err
-	}
-
-	if err := result.UnmarshalText([]byte(valUpper)); err == nil {
-		return result, err
+		if result,err := parseDateparse(strings.Join(perm," ")); err == nil {
+			return result,err
+		}
 	}
 
 	return time.Time{}, errors.New("failed to parse date string")
