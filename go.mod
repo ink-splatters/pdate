@@ -1,4 +1,4 @@
-module pdate
+module github.com/ink-splatters/pdate
 
 go 1.19
 
